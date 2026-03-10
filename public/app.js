@@ -15,7 +15,13 @@ async function api(method, path, body) {
   };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Server error (${res.status}): ${text.slice(0, 80)}`);
+  }
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }

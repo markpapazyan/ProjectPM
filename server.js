@@ -102,6 +102,22 @@ app.delete('/api/tasks/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ─── Catch-all error handlers ─────────────────────────────────────────────────
+
+// JSON 404 for unmatched /api/* routes
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `API route not found: ${req.method} ${req.path}` });
+});
+
+// Global error handler — always return JSON for /api, HTML otherwise
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (req.path.startsWith('/api')) {
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+  res.status(500).send('Internal server error');
+});
+
 app.listen(PORT, () => {
   console.log(`ProjectPM running at http://localhost:${PORT}`);
 });
