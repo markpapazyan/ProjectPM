@@ -10,7 +10,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
-app.get('/api/projects', (req, res) => {
+app.get('/service/projects', (req, res) => {
   const projects = db.prepare(`
     SELECT p.*,
       COUNT(t.id) as task_count,
@@ -23,13 +23,13 @@ app.get('/api/projects', (req, res) => {
   res.json(projects);
 });
 
-app.get('/api/projects/:id', (req, res) => {
+app.get('/service/projects/:id', (req, res) => {
   const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id);
   if (!project) return res.status(404).json({ error: 'Project not found' });
   res.json(project);
 });
 
-app.post('/api/projects', (req, res) => {
+app.post('/service/projects', (req, res) => {
   const { name, description, color } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
   const result = db.prepare(
@@ -39,7 +39,7 @@ app.post('/api/projects', (req, res) => {
   res.status(201).json(project);
 });
 
-app.put('/api/projects/:id', (req, res) => {
+app.put('/service/projects/:id', (req, res) => {
   const { name, description, color } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
   const result = db.prepare(
@@ -49,7 +49,7 @@ app.put('/api/projects/:id', (req, res) => {
   res.json(db.prepare('SELECT * FROM projects WHERE id = ?').get(req.params.id));
 });
 
-app.delete('/api/projects/:id', (req, res) => {
+app.delete('/service/projects/:id', (req, res) => {
   const result = db.prepare('DELETE FROM projects WHERE id = ?').run(req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Project not found' });
   res.json({ success: true });
@@ -57,14 +57,14 @@ app.delete('/api/projects/:id', (req, res) => {
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 
-app.get('/api/projects/:id/tasks', (req, res) => {
+app.get('/service/projects/:id/tasks', (req, res) => {
   const tasks = db.prepare(
     'SELECT * FROM tasks WHERE project_id = ? ORDER BY start_date ASC, created_at ASC'
   ).all(req.params.id);
   res.json(tasks);
 });
 
-app.post('/api/projects/:id/tasks', (req, res) => {
+app.post('/service/projects/:id/tasks', (req, res) => {
   const { name, description, status, priority, start_date, end_date, progress, assignee } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
   const result = db.prepare(
@@ -80,7 +80,7 @@ app.post('/api/projects/:id/tasks', (req, res) => {
   res.status(201).json(task);
 });
 
-app.put('/api/tasks/:id', (req, res) => {
+app.put('/service/tasks/:id', (req, res) => {
   const { name, description, status, priority, start_date, end_date, progress, assignee } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Name is required' });
   const result = db.prepare(
@@ -96,7 +96,7 @@ app.put('/api/tasks/:id', (req, res) => {
   res.json(db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id));
 });
 
-app.delete('/api/tasks/:id', (req, res) => {
+app.delete('/service/tasks/:id', (req, res) => {
   const result = db.prepare('DELETE FROM tasks WHERE id = ?').run(req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Task not found' });
   res.json({ success: true });
@@ -105,14 +105,14 @@ app.delete('/api/tasks/:id', (req, res) => {
 // ─── Catch-all error handlers ─────────────────────────────────────────────────
 
 // JSON 404 for unmatched /api/* routes
-app.use('/api', (req, res) => {
+app.use('/service', (req, res) => {
   res.status(404).json({ error: `API route not found: ${req.method} ${req.path}` });
 });
 
 // Global error handler — always return JSON for /api, HTML otherwise
 app.use((err, req, res, next) => {
   console.error(err);
-  if (req.path.startsWith('/api')) {
+  if (req.path.startsWith('/service')) {
     return res.status(500).json({ error: err.message || 'Internal server error' });
   }
   res.status(500).send('Internal server error');

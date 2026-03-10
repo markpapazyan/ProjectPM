@@ -68,7 +68,7 @@ function progressBar(pct) {
 
 /* ── Project list ──────────────────────────────────────────────── */
 async function loadProjects() {
-  projects = await api('GET', '/api/projects');
+  projects = await api('GET', '/service/projects');
   renderProjectList();
 }
 
@@ -105,7 +105,7 @@ async function selectProject(id) {
 /* ── Tasks ─────────────────────────────────────────────────────── */
 async function loadTasks() {
   if (!currentProject) return;
-  tasks = await api('GET', `/api/projects/${currentProject.id}/tasks`);
+  tasks = await api('GET', `/service/projects/${currentProject.id}/tasks`);
   renderStats();
   renderTaskList();
   if (!document.getElementById('tab-gantt').classList.contains('hidden')) {
@@ -214,14 +214,14 @@ function renderGantt() {
       },
       on_date_change(task, start, end) {
         const fmt = d => d.toISOString().split('T')[0];
-        api('PUT', `/api/tasks/${task.id}`, {
+        api('PUT', `/service/tasks/${task.id}`, {
           ...tasks.find(x => String(x.id) === task.id),
           start_date: fmt(start),
           end_date: fmt(end),
         }).then(() => loadTasks()).catch(e => toast(e.message, 'error'));
       },
       on_progress_change(task, progress) {
-        api('PUT', `/api/tasks/${task.id}`, {
+        api('PUT', `/service/tasks/${task.id}`, {
           ...tasks.find(x => String(x.id) === task.id),
           progress: Math.round(progress),
         }).then(() => loadTasks()).catch(e => toast(e.message, 'error'));
@@ -255,7 +255,7 @@ document.getElementById('project-form').addEventListener('submit', async e => {
   };
   try {
     if (editingProjectId) {
-      const updated = await api('PUT', `/api/projects/${editingProjectId}`, payload);
+      const updated = await api('PUT', `/service/projects/${editingProjectId}`, payload);
       projects = projects.map(p => p.id === updated.id ? { ...p, ...updated } : p);
       if (currentProject?.id === updated.id) {
         currentProject = { ...currentProject, ...updated };
@@ -264,7 +264,7 @@ document.getElementById('project-form').addEventListener('submit', async e => {
       }
       toast('Project updated');
     } else {
-      const created = await api('POST', '/api/projects', payload);
+      const created = await api('POST', '/service/projects', payload);
       projects.unshift({ ...created, task_count: 0, done_count: 0 });
       toast('Project created');
       selectProject(created.id);
@@ -316,10 +316,10 @@ document.getElementById('task-form').addEventListener('submit', async e => {
   };
   try {
     if (editingTaskId) {
-      await api('PUT', `/api/tasks/${editingTaskId}`, payload);
+      await api('PUT', `/service/tasks/${editingTaskId}`, payload);
       toast('Task updated');
     } else {
-      await api('POST', `/api/projects/${currentProject.id}/tasks`, payload);
+      await api('POST', `/service/projects/${currentProject.id}/tasks`, payload);
       toast('Task created');
     }
     closeModal('task-modal');
@@ -340,7 +340,7 @@ function confirmDelete(type, item) {
   confirmCallback = async () => {
     try {
       if (type === 'project') {
-        await api('DELETE', `/api/projects/${item.id}`);
+        await api('DELETE', `/service/projects/${item.id}`);
         projects = projects.filter(p => p.id !== item.id);
         if (currentProject?.id === item.id) {
           currentProject = null;
@@ -350,7 +350,7 @@ function confirmDelete(type, item) {
         renderProjectList();
         toast('Project deleted');
       } else {
-        await api('DELETE', `/api/tasks/${item.id}`);
+        await api('DELETE', `/service/tasks/${item.id}`);
         await loadTasks();
         await loadProjects();
         toast('Task deleted');
