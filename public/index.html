@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProjectPM</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <span class="logo">📋 ProjectPM</span>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">PROJECTS</div>
+    <ul id="project-list"></ul>
+    <button class="btn btn-outline btn-sm w-full" id="new-project-btn">+ New Project</button>
+  </div>
+</aside>
+
+<!-- ── Main ────────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Empty state -->
+  <div id="empty-state" class="empty-state">
+    <div class="empty-icon">📊</div>
+    <h2>No project selected</h2>
+    <p>Select or create a project to get started.</p>
+    <button class="btn btn-primary" id="empty-new-project-btn">Create Project</button>
+  </div>
+
+  <!-- Project view -->
+  <div id="project-view" class="hidden">
+
+    <!-- Header -->
+    <div class="project-header">
+      <div>
+        <h1 id="project-title"></h1>
+        <p id="project-desc" class="muted"></p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline btn-sm" id="edit-project-btn">Edit</button>
+        <button class="btn btn-danger btn-sm" id="delete-project-btn">Delete</button>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar">
+      <div class="stat"><span id="stat-total">0</span><label>Total</label></div>
+      <div class="stat"><span id="stat-todo">0</span><label>To Do</label></div>
+      <div class="stat"><span id="stat-inprogress">0</span><label>In Progress</label></div>
+      <div class="stat"><span id="stat-done">0</span><label>Done</label></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" data-tab="tasks">Tasks</button>
+      <button class="tab" data-tab="gantt">Gantt Chart</button>
+    </div>
+
+    <!-- Tasks tab -->
+    <div id="tab-tasks" class="tab-content">
+      <div class="toolbar">
+        <input type="text" id="task-search" placeholder="Search tasks…" class="search-input" />
+        <select id="filter-status" class="select-sm">
+          <option value="">All Status</option>
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+        <select id="filter-priority" class="select-sm">
+          <option value="">All Priority</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <button class="btn btn-primary btn-sm" id="add-task-btn">+ Add Task</button>
+      </div>
+
+      <div class="task-list-header">
+        <span>Task</span><span>Assignee</span><span>Priority</span><span>Status</span><span>Due Date</span><span>Progress</span><span></span>
+      </div>
+      <div id="task-list"></div>
+    </div>
+
+    <!-- Gantt tab -->
+    <div id="tab-gantt" class="tab-content hidden">
+      <div class="toolbar">
+        <label class="muted">View:</label>
+        <select id="gantt-view-mode" class="select-sm">
+          <option value="Day">Day</option>
+          <option value="Week" selected>Week</option>
+          <option value="Month">Month</option>
+        </select>
+      </div>
+      <div id="gantt-container">
+        <div id="gantt-empty" class="gantt-empty hidden">
+          <p>No tasks with dates. Add start &amp; end dates to tasks to see the Gantt chart.</p>
+        </div>
+        <svg id="gantt"></svg>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ── Modals ───────────────────────────────────────────────────── -->
+
+<!-- Project modal -->
+<div id="project-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 id="project-modal-title">New Project</h2>
+    <form id="project-form">
+      <label>Name <span class="required">*</span></label>
+      <input type="text" id="pm-name" required placeholder="My Awesome Project" />
+
+      <label>Description</label>
+      <textarea id="pm-desc" placeholder="What is this project about?" rows="2"></textarea>
+
+      <label>Color</label>
+      <div class="color-picker">
+        <input type="color" id="pm-color" value="#4f86f7" />
+        <span id="pm-color-preview" class="color-swatch"></span>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="project-modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="project-modal-save">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Task modal -->
+<div id="task-modal" class="modal-overlay hidden">
+  <div class="modal modal-lg">
+    <h2 id="task-modal-title">New Task</h2>
+    <form id="task-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Task Name <span class="required">*</span></label>
+          <input type="text" id="tm-name" required placeholder="e.g. Design homepage" />
+        </div>
+        <div class="form-group">
+          <label>Assignee</label>
+          <input type="text" id="tm-assignee" placeholder="e.g. Alice" />
+        </div>
+      </div>
+
+      <label>Description</label>
+      <textarea id="tm-desc" placeholder="Task details…" rows="2"></textarea>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="tm-status">
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="tm-priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Start Date</label>
+          <input type="date" id="tm-start" />
+        </div>
+        <div class="form-group">
+          <label>End Date</label>
+          <input type="date" id="tm-end" />
+        </div>
+      </div>
+
+      <label>Progress: <span id="progress-val">0</span>%</label>
+      <input type="range" id="tm-progress" min="0" max="100" value="0" />
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" id="task-modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="task-modal-save">Create Task</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div id="confirm-modal" class="modal-overlay hidden">
+  <div class="modal modal-sm">
+    <h2 id="confirm-title">Are you sure?</h2>
+    <p id="confirm-msg"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
